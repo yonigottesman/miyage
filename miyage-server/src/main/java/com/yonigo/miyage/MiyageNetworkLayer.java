@@ -6,11 +6,11 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.net.ssl.SSLException;
 import java.security.cert.CertificateException;
@@ -19,9 +19,12 @@ public class MiyageNetworkLayer {
 
     ServerBootstrap bootstrap;
     static final boolean SSL = System.getProperty("ssl") != null;
-    static final int PORT = 8007;
-    public MiyageNetworkLayer() throws CertificateException, SSLException {
+    private final MiyageServerConfig config;
+    private static final Logger logger = LogManager.getLogger(MiyageNetworkLayer.class);
 
+
+    public MiyageNetworkLayer() throws CertificateException, SSLException {
+        config = MiyageServerConfig.getConfig();
         // Configure SSL.
         final SslContext sslCtx;
         if (SSL) {
@@ -37,16 +40,16 @@ public class MiyageNetworkLayer {
         bootstrap.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
                 .option(ChannelOption.SO_BACKLOG, 100)
-                .handler(new LoggingHandler(LogLevel.INFO))
+//                .handler(new LoggingHandler(LogLevel.INFO))
                 .childHandler(new MiyageServerInitializer(sslCtx));
     }
 
 
     public void listen() throws InterruptedException {
        // Start the server.
-        ChannelFuture f = bootstrap.bind(PORT).sync();
-
+        ChannelFuture f = bootstrap.bind(config.getPort()).sync();
         // Wait until the server socket is closed.
+        logger.info("start listening");
         f.channel().closeFuture().sync();
     }
 
